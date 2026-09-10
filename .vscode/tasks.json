@@ -1,0 +1,19 @@
+{
+    // Keep WSL build files off the Windows NTFS drive.
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build spider_sim_cpp",
+            "type": "shell",
+            "command": "cmake -S . -B ${env:HOME}/.cache/spider_sim_cpp-build -DCMAKE_BUILD_TYPE=Debug && cmake --build ${env:HOME}/.cache/spider_sim_cpp-build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": "$gcc",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}

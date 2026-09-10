@@ -1,0 +1,2 @@
+# Ignore generated CMake artifacts.
+build/

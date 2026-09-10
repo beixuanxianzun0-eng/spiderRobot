@@ -1,0 +1,21 @@
+{
+    // Run the MuJoCo program with GDB inside Ubuntu WSL.
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug MuJoCo closed loop",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${env:HOME}/.cache/spider_sim_cpp-build/spider_sim_cpp",
+            "args": [
+                "${workspaceFolder}/models/closed_loop.xml"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "preLaunchTask": "Build spider_sim_cpp"
+        }
+    ]
+}

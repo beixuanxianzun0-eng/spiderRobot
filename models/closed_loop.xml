@@ -1,0 +1,17 @@
+<mujoco model="closed_loop_joint">
+  <!-- Use radians so controller values match C++ values directly. -->
+  <compiler angle="radian"/>
+  <option timestep="0.002" gravity="0 0 0"/>
+
+  <worldbody>
+    <light pos="0 0 2"/>
+    <body name="arm" pos="0 0 0.3">
+      <joint name="arm_joint" type="hinge" axis="0 1 0" range="-1.57 1.57" damping="0.2"/>
+      <geom name="arm_link" type="capsule" fromto="0 0 0 0.3 0 0" size="0.03" mass="0.3"/>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <motor name="arm_motor" joint="arm_joint" ctrlrange="-5 5"/>
+  </actuator>
+</mujoco>
