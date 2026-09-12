@@ -1,0 +1,187 @@
+#include "load_all_settings.h"
+
+#include <array>
+#include <algorithm>
+#include <cmath>
+#include <stdexcept>
+#include <string>
+
+namespace {
+
+// 根据腿部弯曲角计算身体滑动关节位置，使末段保持相同竖直关系。
+double calculateBodyHeightOffset(
+    double legBendAngle,
+    const SpiderParameters& parameters
+) {
+    return parameters.distalLegLength
+        + parameters.middleLegLength * std::sin(legBendAngle)
+        - parameters.baseBodyHeight;
+}
+
+// 把参数文件中的关节限制写入 MuJoCo 模型，参数文件因此成为唯一运行时来源。
+void setJointRange(
+    mjModel* model,
+    const std::string& jointName,
+    double minimum,
+    double maximum
+) {
+    const int jointId = mj_name2id(model, mjOBJ_JOINT, jointName.c_str());
+    if (jointId < 0) {
+        throw std::runtime_error("Required joint was not found: " + jointName);
+    }
+    model->jnt_range[2 * jointId] = minimum;
+    model->jnt_range[2 * jointId + 1] = maximum;
+}
+
+}  // namespace
+
+SimulationSettings::~SimulationSettings() {
+    // 按照创建的反向顺序释放渲染和窗口资源。
+    if (contextInitialized) {
+        mjr_freeContext(&context);
+    }
+    if (sceneInitialized) {
+        mjv_freeScene(&scene);
+    }
+    if (window != nullptr) {
+        glfwDestroyWindow(window);
+    }
+    if (glfwInitialized) {
+        glfwTerminate();
+    }
+}
+
+std::unique_ptr<SimulationSettings> loadAllSettings(
+    const char* modelPath,
+    const char* parameterPath
+) {
+    auto settings = std::make_unique<SimulationSettings>();
+    settings->parameters = loadSpiderParameters(parameterPath);
+
+    // 加载 XML，并把解析错误转换成普通 C++ 异常。
+    std::array<char, 1024> error{};
+    settings->model.reset(
+        mj_loadXML(modelPath, nullptr, error.data(), error.size())
+    );
+    if (!settings->model) {
+        throw std::runtime_error("Failed to load model: " + std::string(error.data()));
+    }
+
+    settings->data.reset(mj_makeData(settings->model.get()));
+    if (!settings->data) {
+        throw std::runtime_error("Failed to allocate simulation data.");
+    }
+    if (settings->model->nq < 13
+        || settings->model->nv < 13
+        || settings->model->nu < 13) {
+        throw std::runtime_error("The model must contain thirteen controlled joints.");
+    }
+
+    // 身体只有一个竖直滑动关节。
+    settings->bodyBindings = createJointBindings(
+        settings->model.get(),
+        {"body_height_joint"},
+        {"body_height_motor"}
+    );
+
+    // 每个名称创建一个 LegController，六条腿共享同一类实现。
+    const std::array<std::string, 6> legNames{
+        "front_left",
+        "front_right",
+        "middle_left",
+        "middle_right",
+        "rear_left",
+        "rear_right"
+    };
+    settings->legs.reserve(legNames.size());
+    for (const std::string& legName : legNames) {
+        settings->legs.emplace_back(settings->model.get(), legName);
+        setJointRange(
+            settings->model.get(),
+            legName + "_middle_joint",
+            settings->parameters.minimumLegBendAngle,
+            settings->parameters.maximumLegBendAngle
+        );
+        setJointRange(
+            settings->model.get(),
+            legName + "_distal_joint",
+            -settings->parameters.maximumLegBendAngle,
+            -settings->parameters.minimumLegBendAngle
+        );
+    }
+    setJointRange(
+        settings->model.get(),
+        "body_height_joint",
+        calculateBodyHeightOffset(
+            settings->parameters.minimumLegBendAngle,
+            settings->parameters
+        ),
+        calculateBodyHeightOffset(
+            settings->parameters.maximumLegBendAngle,
+            settings->parameters
+        )
+    );
+
+    // 参数文件直接给出第二关节初始角度，身体高度根据它同步计算。
+    settings->targetLegBendAngle = settings->parameters.initialLegBendAngle;
+    settings->targetHeight = calculateBodyHeightOffset(
+        settings->targetLegBendAngle,
+        settings->parameters
+    );
+    settings->data->qpos[settings->bodyBindings[0].qposAddress]
+        = settings->targetHeight;
+    for (const LegController& leg : settings->legs) {
+        leg.initializePose(settings->data.get(), settings->targetLegBendAngle);
+    }
+    mj_forward(settings->model.get(), settings->data.get());
+
+    // 初始化 GLFW 窗口和 MuJoCo 渲染资源。
+    if (!glfwInit()) {
+        throw std::runtime_error("Failed to initialize GLFW.");
+    }
+    settings->glfwInitialized = true;
+    settings->window = glfwCreateWindow(
+        960, 720, "MuJoCo hexapod - Q up / E down", nullptr, nullptr
+    );
+    if (settings->window == nullptr) {
+        throw std::runtime_error("Failed to create the MuJoCo window.");
+    }
+    glfwMakeContextCurrent(settings->window);
+    glfwSwapInterval(1);
+
+    mjv_defaultCamera(&settings->camera);
+    mjv_defaultOption(&settings->option);
+    mjv_defaultScene(&settings->scene);
+    mjr_defaultContext(&settings->context);
+    settings->camera.lookat[0] = 0.0;
+    settings->camera.lookat[1] = 0.0;
+    settings->camera.lookat[2] = 0.20;
+    settings->camera.distance = 1.80;
+    settings->camera.azimuth = 135.0;
+    settings->camera.elevation = -25.0;
+
+    mjv_makeScene(settings->model.get(), &settings->scene, 1000);
+    settings->sceneInitialized = true;
+    mjr_makeContext(settings->model.get(), &settings->context, mjFONTSCALE_150);
+    settings->contextInitialized = true;
+
+    return settings;
+}
+
+void renderFrame(SimulationSettings& settings) {
+    // 把最新物理状态转换为场景并显示在 GLFW 窗口。
+    mjrRect viewport{0, 0, 0, 0};
+    glfwGetFramebufferSize(settings.window, &viewport.width, &viewport.height);
+    mjv_updateScene(
+        settings.model.get(),
+        settings.data.get(),
+        &settings.option,
+        nullptr,
+        &settings.camera,
+        mjCAT_ALL,
+        &settings.scene
+    );
+    mjr_render(viewport, &settings.scene, &settings.context);
+    glfwSwapBuffers(settings.window);
+    glfwPollEvents();
+}

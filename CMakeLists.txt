@@ -24,7 +24,15 @@ find_library(
 
 find_package(glfw3 REQUIRED)
 
-add_executable(spider_sim_cpp src/main.cpp)
+add_executable(
+    spider_sim_cpp
+    src/main.cpp
+    src/joint_control.cpp
+    src/leg_controller.cpp
+    src/load_all_settings.cpp
+    src/movement_state_machine.cpp
+    src/spider_parameters.cpp
+)
 target_include_directories(spider_sim_cpp PRIVATE "${MUJOCO_INCLUDE_DIR}")
 target_link_libraries(spider_sim_cpp PRIVATE "${MUJOCO_LIBRARY}" glfw)
 
