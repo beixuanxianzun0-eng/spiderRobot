@@ -3,13 +3,12 @@
 #include <mujoco/mujoco.h>
 
 #include <algorithm>
-#include <cmath>
 #include <exception>
 #include <iomanip>
 #include <iostream>
 #include <memory>
 
-#include "joint_control.h"
+#include "gait_controller.h"
 #include "load_all_settings.h"
 #include "movement_state_machine.h"
 
@@ -27,12 +26,17 @@ int main(int argc, char* argv[]) {
         SpiderParameters& parameters = settings->parameters;
 
         std::cout << std::fixed << std::setprecision(3);
-        std::cout << "Controls: hold Q to raise, hold E to lower.\n";
+        std::cout << "Pose: hold Q/E to adjust the standing leg angle.\n";
         std::cout << "Movement: W forward, S backward, release to stand.\n";
-        std::cout << "time\ttarget_height\tactual_height\tleg_angle\n";
+        std::cout << "time\tbody_x\tbody_height\tleg_angle\n";
 
         int stepCount = 0;
         MovementStateMachine movementStateMachine;
+        GaitController gaitController(
+            parameters.gaitCycleDuration,
+            parameters.gaitStrideAngle,
+            parameters.gaitLiftAngle
+        );
 
         // 核心闭环顺序：读取输入、更新目标、控制关节、推进物理、渲染。
         while (!glfwWindowShouldClose(settings->window)) {
@@ -49,39 +53,49 @@ int main(int argc, char* argv[]) {
             if (movementStateMachine.update(forwardPressed, backwardPressed)) {
                 std::cout << "Movement state: "
                           << movementStateName(movementStateMachine.state())
+                          << " / "
+                          << movementDirectionName(movementStateMachine.direction())
                           << '\n';
             }
 
             // Q 增大第二关节角度，E 减小角度并允许越过零进入负值。
             if (raisePressed != lowerPressed) {
                 const double direction = raisePressed ? 1.0 : -1.0;
+                const double previousMiddleAngle = settings->targetLegBendAngle;
                 settings->targetLegBendAngle = std::clamp(
                     settings->targetLegBendAngle
                         + direction * parameters.legBendSpeed * parameters.frameDuration,
                     parameters.minimumLegBendAngle,
                     parameters.maximumLegBendAngle
                 );
+                const double appliedChange
+                    = settings->targetLegBendAngle - previousMiddleAngle;
+                settings->targetDistalLegAngle = std::clamp(
+                    settings->targetDistalLegAngle - appliedChange,
+                    parameters.minimumDistalLegAngle,
+                    parameters.maximumDistalLegAngle
+                );
             }
 
-            // 直接使用目标角；身体高度根据腿部几何关系同步变化。
+            // 站姿角作为步态的基准，身体运动交给物理接触求解。
             const double targetMiddleAngle = settings->targetLegBendAngle;
-            settings->targetHeight = parameters.distalLegLength
-                + parameters.middleLegLength * std::sin(targetMiddleAngle)
-                - parameters.baseBodyHeight;
+            const std::array<LegPose, 6> legPoses = gaitController.update(
+                movementStateMachine.state(),
+                movementStateMachine.direction(),
+                parameters.frameDuration,
+                targetMiddleAngle,
+                settings->targetDistalLegAngle
+            );
 
             const double frameStartTime = settings->data->time;
             while (settings->data->time - frameStartTime < parameters.frameDuration) {
-                // 身体高度和六条腿分别通过自己的模块应用控制。
-                applyJointPdControl(
-                    settings->data.get(),
-                    settings->bodyBindings,
-                    settings->targetHeight,
-                    parameters.bodyPd
-                );
-                for (const LegController& leg : settings->legs) {
-                    leg.applyControl(
+                // 六条腿驱动自由身体，代码不直接修改身体坐标。
+                for (std::size_t index = 0; index < settings->legs.size(); ++index) {
+                    settings->legs[index].applyControl(
                         settings->data.get(),
-                        targetMiddleAngle,
+                        legPoses[index].rootAngle,
+                        legPoses[index].middleAngle,
+                        legPoses[index].distalAngle,
                         parameters.legPd
                     );
                 }
@@ -92,10 +106,8 @@ int main(int argc, char* argv[]) {
                 if (stepCount % 250 == 0) {
                     std::cout
                         << settings->data->time << '\t'
-                        << settings->targetHeight << '\t'
-                        << settings->data->qpos[
-                            settings->bodyBindings[0].qposAddress
-                        ] << '\t'
+                        << settings->data->qpos[settings->bodyQposAddress] << '\t'
+                        << settings->data->qpos[settings->bodyQposAddress + 2] << '\t'
                         << settings->legs[0].middlePosition(settings->data.get())
                         << '\n';
                 }

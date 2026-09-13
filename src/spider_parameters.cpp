@@ -73,18 +73,20 @@ SpiderParameters loadSpiderParameters(const std::string& filePath) {
 
     SpiderParameters parameters{
         requireDouble(values, "frame_duration"),
-        requireDouble(values, "base_body_height"),
+        requireDouble(values, "initial_body_height"),
         requireDouble(values, "middle_leg_length"),
         requireDouble(values, "distal_leg_length"),
         requireDouble(values, "initial_leg_bend_angle"),
         requireDouble(values, "minimum_leg_bend_angle"),
         requireDouble(values, "maximum_leg_bend_angle"),
+        requireDouble(values, "initial_distal_leg_angle"),
+        requireDouble(values, "minimum_distal_leg_angle"),
+        requireDouble(values, "maximum_distal_leg_angle"),
         requireDouble(values, "leg_bend_speed"),
-        {
-            requireDouble(values, "body_pd_proportional_gain"),
-            requireDouble(values, "body_pd_derivative_gain"),
-            requireDouble(values, "body_pd_maximum_effort")
-        },
+        requireDouble(values, "gait_cycle_duration"),
+        requireDouble(values, "gait_root_joint_limit"),
+        requireDouble(values, "gait_stride_angle"),
+        requireDouble(values, "gait_lift_angle"),
         {
             requireDouble(values, "leg_pd_proportional_gain"),
             requireDouble(values, "leg_pd_derivative_gain"),
@@ -104,11 +106,25 @@ SpiderParameters loadSpiderParameters(const std::string& filePath) {
             "Leg bend angles must stay ordered between -pi/2 and pi/2."
         );
     }
+    if (parameters.minimumDistalLegAngle > parameters.maximumDistalLegAngle
+        || parameters.initialDistalLegAngle < parameters.minimumDistalLegAngle
+        || parameters.initialDistalLegAngle > parameters.maximumDistalLegAngle) {
+        throw std::runtime_error("Distal leg angles must stay inside their limits.");
+    }
     if (parameters.legBendSpeed <= 0.0
         || parameters.frameDuration <= 0.0
         || parameters.middleLegLength <= 0.0
         || parameters.distalLegLength < 0.0) {
         throw std::runtime_error("Spider speed, timing, and lengths must be valid.");
+    }
+    if (parameters.gaitCycleDuration <= 0.0
+        || parameters.gaitRootJointLimit <= 0.0
+        || parameters.gaitStrideAngle < 0.0
+        || parameters.gaitStrideAngle > parameters.gaitRootJointLimit
+        || parameters.gaitLiftAngle < 0.0
+        || parameters.initialLegBendAngle - parameters.gaitLiftAngle
+            < parameters.minimumLegBendAngle) {
+        throw std::runtime_error("Gait parameters exceed the configured joint limits.");
     }
 
     return parameters;

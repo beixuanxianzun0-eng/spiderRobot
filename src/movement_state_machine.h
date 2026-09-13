@@ -3,8 +3,14 @@
 // 表示蜘蛛当前的基础移动状态。
 enum class MovementState {
     Standing,
-    MovingForward,
-    MovingBackward
+    Moving
+};
+
+// 前后方向独立于状态，避免把每个方向扩展成一种状态。
+enum class MovementDirection {
+    Stopped,
+    Forward,
+    Backward
 };
 
 // 根据前进和后退输入维护唯一的移动状态。
@@ -19,9 +25,16 @@ public:
     // 返回当前状态，供后续步态模块读取。
     MovementState state() const;
 
+    // 返回当前移动方向，站立时方向为 Stopped。
+    MovementDirection direction() const;
+
 private:
     MovementState state_{MovementState::Standing};
+    MovementDirection direction_{MovementDirection::Stopped};
 };
 
 // 返回便于日志观察的状态名称。
 const char* movementStateName(MovementState state);
+
+// 返回便于日志观察的方向名称。
+const char* movementDirectionName(MovementDirection direction);

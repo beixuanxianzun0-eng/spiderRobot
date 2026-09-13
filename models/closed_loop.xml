@@ -1,91 +1,101 @@
-<mujoco model="hexapod_leg_lift">
-  <!-- 使用米和弧度作为统一单位。 -->
+<mujoco model="hexumi">
+  <!-- 使用 Hexumi 官方 URDF 的米制尺寸和关节坐标。 -->
   <compiler angle="radian"/>
-  <option timestep="0.002" gravity="0 0 0"/>
+  <option timestep="0.002" gravity="0 0 -9.81"/>
 
   <default>
-    <!-- 当前只学习身体升降，暂不启用碰撞和腿部动力学。 -->
-    <geom contype="0" conaffinity="0"/>
+    <!-- 简单几何体同时负责骨架显示、质量和稳定碰撞。 -->
+    <geom contype="1" conaffinity="1" friction="1.5 0.005 0.0001" solref="0.01 1" solimp="0.90 0.99 0.001"/>
   </default>
 
   <worldbody>
-    <light pos="0 0 2"/>
+    <light pos="0 0 1.5"/>
     <geom name="ground" type="plane" size="2 2 0.1" rgba="0.18 0.20 0.22 1"/>
 
-    <!-- 身体只能沿 Z 轴运动；腿部角度与高度目标同步。 -->
-    <body name="spider_body" pos="0 0 0.275">
-      <joint name="body_height_joint" type="slide" axis="0 0 1" range="0 0.11" damping="4"/>
-      <geom name="body_shell" type="ellipsoid" size="0.24 0.16 0.07" mass="1.2" rgba="0.30 0.38 0.46 1"/>
+    <body name="spider_body" pos="0 0 0.120">
+      <freejoint name="body_free_joint"/>
+      <geom name="body_collision" type="ellipsoid" pos="-0.0012 0 0.015" size="0.1153 0.1084 0.040" mass="1.07064" rgba="0.22 0.26 0.32 1"/>
 
-      <!-- 每条腿：根部横段、负责升降的中段、保持竖直的触地末段。 -->
-      <body name="front_left_leg" pos="0.13 0.09 0" euler="0 0 0.55">
-        <geom name="front_left_root" type="capsule" fromto="0 0 0 0.18 0 0" size="0.022" mass="0.08"/>
-        <body name="front_left_middle" pos="0.18 0 0">
-          <joint name="front_left_middle_joint" type="hinge" axis="0 1 0" range="0.3 1.1" damping="0.3"/>
-          <geom name="front_left_middle_link" type="capsule" fromto="0 0 0 0.22 0 0" size="0.020" mass="0.07"/>
-          <body name="front_left_distal" pos="0.22 0 0">
-            <joint name="front_left_distal_joint" type="hinge" axis="0 1 0" range="-1.1 -0.3" damping="0.3"/>
-            <geom name="front_left_foot" type="capsule" fromto="0 0 0 0 0 -0.182" size="0.018" mass="0.06"/>
+      <!-- 左前腿：官方 L1 安装位置和 30 度方向。 -->
+      <body name="front_left_leg" pos="0.0952628 0.055 0" euler="0 0 0.5235988">
+        <joint name="front_left_root_joint" type="hinge" axis="0 0 1" range="-1.5707963 1.5707963" damping="0.3"/>
+        <geom name="front_left_root_collision" type="capsule" fromto="0 0 0 0.04 0 0" size="0.015" mass="0.011045" rgba="0.36 0.41 0.48 1"/>
+        <body name="front_left_middle" pos="0.04 0 0" euler="1.5707963 0 0">
+          <joint name="front_left_middle_joint" type="hinge" axis="0 0 1" range="-1.5707963 1.5707963" damping="0.3"/>
+          <geom name="front_left_middle_collision" type="capsule" fromto="0 0 0 0.07 0 0" size="0.012" mass="0.00514" rgba="0.76 0.80 0.86 1"/>
+          <body name="front_left_distal" pos="0.07 0 0">
+            <joint name="front_left_distal_joint" type="hinge" axis="0 0 1" range="-3.1415927 0" damping="0.3"/>
+            <geom name="front_left_foot_collision" type="capsule" fromto="0 0 0 0.13 0 0" size="0.010" mass="0.0013722" rgba="0.86 0.18 0.12 1"/>
           </body>
         </body>
       </body>
 
-      <body name="front_right_leg" pos="0.13 -0.09 0" euler="0 0 -0.55">
-        <geom name="front_right_root" type="capsule" fromto="0 0 0 0.18 0 0" size="0.022" mass="0.08"/>
-        <body name="front_right_middle" pos="0.18 0 0">
-          <joint name="front_right_middle_joint" type="hinge" axis="0 1 0" range="0.3 1.1" damping="0.3"/>
-          <geom name="front_right_middle_link" type="capsule" fromto="0 0 0 0.22 0 0" size="0.020" mass="0.07"/>
-          <body name="front_right_distal" pos="0.22 0 0">
-            <joint name="front_right_distal_joint" type="hinge" axis="0 1 0" range="-1.1 -0.3" damping="0.3"/>
-            <geom name="front_right_foot" type="capsule" fromto="0 0 0 0 0 -0.182" size="0.018" mass="0.06"/>
+      <!-- 右前腿：官方 R1 安装位置和负 30 度方向。 -->
+      <body name="front_right_leg" pos="0.0952628 -0.055 0" euler="0 0 -0.5235988">
+        <joint name="front_right_root_joint" type="hinge" axis="0 0 1" range="-1.5707963 1.5707963" damping="0.3"/>
+        <geom name="front_right_root_collision" type="capsule" fromto="0 0 0 0.04 0 0" size="0.015" mass="0.011045" rgba="0.36 0.41 0.48 1"/>
+        <body name="front_right_middle" pos="0.04 0 0" euler="1.5707963 0 0">
+          <joint name="front_right_middle_joint" type="hinge" axis="0 0 1" range="-1.5707963 1.5707963" damping="0.3"/>
+          <geom name="front_right_middle_collision" type="capsule" fromto="0 0 0 0.07 0 0" size="0.012" mass="0.00514" rgba="0.76 0.80 0.86 1"/>
+          <body name="front_right_distal" pos="0.07 0 0">
+            <joint name="front_right_distal_joint" type="hinge" axis="0 0 1" range="-3.1415927 0" damping="0.3"/>
+            <geom name="front_right_foot_collision" type="capsule" fromto="0 0 0 0.13 0 0" size="0.010" mass="0.0013722" rgba="0.86 0.18 0.12 1"/>
           </body>
         </body>
       </body>
 
-      <body name="middle_left_leg" pos="0 0.13 0" euler="0 0 1.57">
-        <geom name="middle_left_root" type="capsule" fromto="0 0 0 0.18 0 0" size="0.022" mass="0.08"/>
-        <body name="middle_left_middle" pos="0.18 0 0">
-          <joint name="middle_left_middle_joint" type="hinge" axis="0 1 0" range="0.3 1.1" damping="0.3"/>
-          <geom name="middle_left_middle_link" type="capsule" fromto="0 0 0 0.22 0 0" size="0.020" mass="0.07"/>
-          <body name="middle_left_distal" pos="0.22 0 0">
-            <joint name="middle_left_distal_joint" type="hinge" axis="0 1 0" range="-1.1 -0.3" damping="0.3"/>
-            <geom name="middle_left_foot" type="capsule" fromto="0 0 0 0 0 -0.182" size="0.018" mass="0.06"/>
+      <!-- 左中腿：官方 L2 安装位置和 90 度方向。 -->
+      <body name="middle_left_leg" pos="0 0.09 0" euler="0 0 1.5707963">
+        <joint name="middle_left_root_joint" type="hinge" axis="0 0 1" range="-1.5707963 1.5707963" damping="0.3"/>
+        <geom name="middle_left_root_collision" type="capsule" fromto="0 0 0 0.04 0 0" size="0.015" mass="0.011045" rgba="0.36 0.41 0.48 1"/>
+        <body name="middle_left_middle" pos="0.04 0 0" euler="1.5707963 0 0">
+          <joint name="middle_left_middle_joint" type="hinge" axis="0 0 1" range="-1.5707963 1.5707963" damping="0.3"/>
+          <geom name="middle_left_middle_collision" type="capsule" fromto="0 0 0 0.07 0 0" size="0.012" mass="0.00514" rgba="0.76 0.80 0.86 1"/>
+          <body name="middle_left_distal" pos="0.07 0 0">
+            <joint name="middle_left_distal_joint" type="hinge" axis="0 0 1" range="-3.1415927 0" damping="0.3"/>
+            <geom name="middle_left_foot_collision" type="capsule" fromto="0 0 0 0.13 0 0" size="0.010" mass="0.0013722" rgba="0.86 0.18 0.12 1"/>
           </body>
         </body>
       </body>
 
-      <body name="middle_right_leg" pos="0 -0.13 0" euler="0 0 -1.57">
-        <geom name="middle_right_root" type="capsule" fromto="0 0 0 0.18 0 0" size="0.022" mass="0.08"/>
-        <body name="middle_right_middle" pos="0.18 0 0">
-          <joint name="middle_right_middle_joint" type="hinge" axis="0 1 0" range="0.3 1.1" damping="0.3"/>
-          <geom name="middle_right_middle_link" type="capsule" fromto="0 0 0 0.22 0 0" size="0.020" mass="0.07"/>
-          <body name="middle_right_distal" pos="0.22 0 0">
-            <joint name="middle_right_distal_joint" type="hinge" axis="0 1 0" range="-1.1 -0.3" damping="0.3"/>
-            <geom name="middle_right_foot" type="capsule" fromto="0 0 0 0 0 -0.182" size="0.018" mass="0.06"/>
+      <!-- 右中腿：官方 R2 安装位置和负 90 度方向。 -->
+      <body name="middle_right_leg" pos="0 -0.09 0" euler="0 0 -1.5707963">
+        <joint name="middle_right_root_joint" type="hinge" axis="0 0 1" range="-1.5707963 1.5707963" damping="0.3"/>
+        <geom name="middle_right_root_collision" type="capsule" fromto="0 0 0 0.04 0 0" size="0.015" mass="0.011045" rgba="0.36 0.41 0.48 1"/>
+        <body name="middle_right_middle" pos="0.04 0 0" euler="1.5707963 0 0">
+          <joint name="middle_right_middle_joint" type="hinge" axis="0 0 1" range="-1.5707963 1.5707963" damping="0.3"/>
+          <geom name="middle_right_middle_collision" type="capsule" fromto="0 0 0 0.07 0 0" size="0.012" mass="0.00514" rgba="0.76 0.80 0.86 1"/>
+          <body name="middle_right_distal" pos="0.07 0 0">
+            <joint name="middle_right_distal_joint" type="hinge" axis="0 0 1" range="-3.1415927 0" damping="0.3"/>
+            <geom name="middle_right_foot_collision" type="capsule" fromto="0 0 0 0.13 0 0" size="0.010" mass="0.0013722" rgba="0.86 0.18 0.12 1"/>
           </body>
         </body>
       </body>
 
-      <body name="rear_left_leg" pos="-0.13 0.09 0" euler="0 0 2.59">
-        <geom name="rear_left_root" type="capsule" fromto="0 0 0 0.18 0 0" size="0.022" mass="0.08"/>
-        <body name="rear_left_middle" pos="0.18 0 0">
-          <joint name="rear_left_middle_joint" type="hinge" axis="0 1 0" range="0.3 1.1" damping="0.3"/>
-          <geom name="rear_left_middle_link" type="capsule" fromto="0 0 0 0.22 0 0" size="0.020" mass="0.07"/>
-          <body name="rear_left_distal" pos="0.22 0 0">
-            <joint name="rear_left_distal_joint" type="hinge" axis="0 1 0" range="-1.1 -0.3" damping="0.3"/>
-            <geom name="rear_left_foot" type="capsule" fromto="0 0 0 0 0 -0.182" size="0.018" mass="0.06"/>
+      <!-- 左后腿：官方 L3 安装位置和 150 度方向。 -->
+      <body name="rear_left_leg" pos="-0.0952628 0.055 0" euler="0 0 2.6179939">
+        <joint name="rear_left_root_joint" type="hinge" axis="0 0 1" range="-1.5707963 1.5707963" damping="0.3"/>
+        <geom name="rear_left_root_collision" type="capsule" fromto="0 0 0 0.04 0 0" size="0.015" mass="0.011045" rgba="0.36 0.41 0.48 1"/>
+        <body name="rear_left_middle" pos="0.04 0 0" euler="1.5707963 0 0">
+          <joint name="rear_left_middle_joint" type="hinge" axis="0 0 1" range="-1.5707963 1.5707963" damping="0.3"/>
+          <geom name="rear_left_middle_collision" type="capsule" fromto="0 0 0 0.07 0 0" size="0.012" mass="0.00514" rgba="0.76 0.80 0.86 1"/>
+          <body name="rear_left_distal" pos="0.07 0 0">
+            <joint name="rear_left_distal_joint" type="hinge" axis="0 0 1" range="-3.1415927 0" damping="0.3"/>
+            <geom name="rear_left_foot_collision" type="capsule" fromto="0 0 0 0.13 0 0" size="0.010" mass="0.0013722" rgba="0.86 0.18 0.12 1"/>
           </body>
         </body>
       </body>
 
-      <body name="rear_right_leg" pos="-0.13 -0.09 0" euler="0 0 -2.59">
-        <geom name="rear_right_root" type="capsule" fromto="0 0 0 0.18 0 0" size="0.022" mass="0.08"/>
-        <body name="rear_right_middle" pos="0.18 0 0">
-          <joint name="rear_right_middle_joint" type="hinge" axis="0 1 0" range="0.3 1.1" damping="0.3"/>
-          <geom name="rear_right_middle_link" type="capsule" fromto="0 0 0 0.22 0 0" size="0.020" mass="0.07"/>
-          <body name="rear_right_distal" pos="0.22 0 0">
-            <joint name="rear_right_distal_joint" type="hinge" axis="0 1 0" range="-1.1 -0.3" damping="0.3"/>
-            <geom name="rear_right_foot" type="capsule" fromto="0 0 0 0 0 -0.182" size="0.018" mass="0.06"/>
+      <!-- 右后腿：官方 R3 安装位置和负 150 度方向。 -->
+      <body name="rear_right_leg" pos="-0.0952628 -0.055 0" euler="0 0 -2.6179939">
+        <joint name="rear_right_root_joint" type="hinge" axis="0 0 1" range="-1.5707963 1.5707963" damping="0.3"/>
+        <geom name="rear_right_root_collision" type="capsule" fromto="0 0 0 0.04 0 0" size="0.015" mass="0.011045" rgba="0.36 0.41 0.48 1"/>
+        <body name="rear_right_middle" pos="0.04 0 0" euler="1.5707963 0 0">
+          <joint name="rear_right_middle_joint" type="hinge" axis="0 0 1" range="-1.5707963 1.5707963" damping="0.3"/>
+          <geom name="rear_right_middle_collision" type="capsule" fromto="0 0 0 0.07 0 0" size="0.012" mass="0.00514" rgba="0.76 0.80 0.86 1"/>
+          <body name="rear_right_distal" pos="0.07 0 0">
+            <joint name="rear_right_distal_joint" type="hinge" axis="0 0 1" range="-3.1415927 0" damping="0.3"/>
+            <geom name="rear_right_foot_collision" type="capsule" fromto="0 0 0 0.13 0 0" size="0.010" mass="0.0013722" rgba="0.86 0.18 0.12 1"/>
           </body>
         </body>
       </body>
@@ -93,18 +103,23 @@
   </worldbody>
 
   <actuator>
-    <!-- 身体高度电机与十二个腿部姿态电机同步工作。 -->
-    <motor name="body_height_motor" joint="body_height_joint" ctrlrange="-30 30"/>
+    <!-- 保留现有十八个电机名称，C++ 控制接口无需改名。 -->
+    <motor name="front_left_root_motor" joint="front_left_root_joint" ctrlrange="-8 8"/>
     <motor name="front_left_middle_motor" joint="front_left_middle_joint" ctrlrange="-8 8"/>
     <motor name="front_left_distal_motor" joint="front_left_distal_joint" ctrlrange="-8 8"/>
+    <motor name="front_right_root_motor" joint="front_right_root_joint" ctrlrange="-8 8"/>
     <motor name="front_right_middle_motor" joint="front_right_middle_joint" ctrlrange="-8 8"/>
     <motor name="front_right_distal_motor" joint="front_right_distal_joint" ctrlrange="-8 8"/>
+    <motor name="middle_left_root_motor" joint="middle_left_root_joint" ctrlrange="-8 8"/>
     <motor name="middle_left_middle_motor" joint="middle_left_middle_joint" ctrlrange="-8 8"/>
     <motor name="middle_left_distal_motor" joint="middle_left_distal_joint" ctrlrange="-8 8"/>
+    <motor name="middle_right_root_motor" joint="middle_right_root_joint" ctrlrange="-8 8"/>
     <motor name="middle_right_middle_motor" joint="middle_right_middle_joint" ctrlrange="-8 8"/>
     <motor name="middle_right_distal_motor" joint="middle_right_distal_joint" ctrlrange="-8 8"/>
+    <motor name="rear_left_root_motor" joint="rear_left_root_joint" ctrlrange="-8 8"/>
     <motor name="rear_left_middle_motor" joint="rear_left_middle_joint" ctrlrange="-8 8"/>
     <motor name="rear_left_distal_motor" joint="rear_left_distal_joint" ctrlrange="-8 8"/>
+    <motor name="rear_right_root_motor" joint="rear_right_root_joint" ctrlrange="-8 8"/>
     <motor name="rear_right_middle_motor" joint="rear_right_middle_joint" ctrlrange="-8 8"/>
     <motor name="rear_right_distal_motor" joint="rear_right_distal_joint" ctrlrange="-8 8"/>
   </actuator>

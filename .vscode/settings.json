@@ -1,4 +1,4 @@
 {
     // 让 C/C++ 扩展读取 CMake 的真实头文件和编译参数。
-    "C_Cpp.default.compileCommands": "${env:HOME}/.cache/spider_sim_cpp-build/compile_commands.json"
+    "C_Cpp.default.compileCommands": "${env:HOME}/.cache/spider_sim_cpp-d-build/compile_commands.json"
 }

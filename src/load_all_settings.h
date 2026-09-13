@@ -27,12 +27,12 @@ struct SimulationSettings {
     bool sceneInitialized{false};
     bool contextInitialized{false};
 
-    std::vector<JointBinding> bodyBindings;
     std::vector<LegController> legs;
+    int bodyQposAddress{-1};
 
     SpiderParameters parameters{};
-    double targetHeight{0.0};
     double targetLegBendAngle{0.0};
+    double targetDistalLegAngle{0.0};
 
     SimulationSettings() = default;
     ~SimulationSettings();

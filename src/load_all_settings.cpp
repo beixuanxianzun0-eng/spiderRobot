@@ -1,22 +1,10 @@
 #include "load_all_settings.h"
 
 #include <array>
-#include <algorithm>
-#include <cmath>
 #include <stdexcept>
 #include <string>
 
 namespace {
-
-// 根据腿部弯曲角计算身体滑动关节位置，使末段保持相同竖直关系。
-double calculateBodyHeightOffset(
-    double legBendAngle,
-    const SpiderParameters& parameters
-) {
-    return parameters.distalLegLength
-        + parameters.middleLegLength * std::sin(legBendAngle)
-        - parameters.baseBodyHeight;
-}
 
 // 把参数文件中的关节限制写入 MuJoCo 模型，参数文件因此成为唯一运行时来源。
 void setJointRange(
@@ -71,18 +59,21 @@ std::unique_ptr<SimulationSettings> loadAllSettings(
     if (!settings->data) {
         throw std::runtime_error("Failed to allocate simulation data.");
     }
-    if (settings->model->nq < 13
-        || settings->model->nv < 13
-        || settings->model->nu < 13) {
-        throw std::runtime_error("The model must contain thirteen controlled joints.");
+    if (settings->model->nu < 18) {
+        throw std::runtime_error("The model must contain eighteen leg actuators.");
     }
 
-    // 身体只有一个竖直滑动关节。
-    settings->bodyBindings = createJointBindings(
+    // 自由关节保存身体三轴位置和四元数姿态，不再由电机直接移动。
+    const int bodyJointId = mj_name2id(
         settings->model.get(),
-        {"body_height_joint"},
-        {"body_height_motor"}
+        mjOBJ_JOINT,
+        "body_free_joint"
     );
+    if (bodyJointId < 0
+        || settings->model->jnt_type[bodyJointId] != mjJNT_FREE) {
+        throw std::runtime_error("The model must contain body_free_joint.");
+    }
+    settings->bodyQposAddress = settings->model->jnt_qposadr[bodyJointId];
 
     // 每个名称创建一个 LegController，六条腿共享同一类实现。
     const std::array<std::string, 6> legNames{
@@ -98,6 +89,12 @@ std::unique_ptr<SimulationSettings> loadAllSettings(
         settings->legs.emplace_back(settings->model.get(), legName);
         setJointRange(
             settings->model.get(),
+            legName + "_root_joint",
+            -settings->parameters.gaitRootJointLimit,
+            settings->parameters.gaitRootJointLimit
+        );
+        setJointRange(
+            settings->model.get(),
             legName + "_middle_joint",
             settings->parameters.minimumLegBendAngle,
             settings->parameters.maximumLegBendAngle
@@ -105,33 +102,23 @@ std::unique_ptr<SimulationSettings> loadAllSettings(
         setJointRange(
             settings->model.get(),
             legName + "_distal_joint",
-            -settings->parameters.maximumLegBendAngle,
-            -settings->parameters.minimumLegBendAngle
+            settings->parameters.minimumDistalLegAngle,
+            settings->parameters.maximumDistalLegAngle
         );
     }
-    setJointRange(
-        settings->model.get(),
-        "body_height_joint",
-        calculateBodyHeightOffset(
-            settings->parameters.minimumLegBendAngle,
-            settings->parameters
-        ),
-        calculateBodyHeightOffset(
-            settings->parameters.maximumLegBendAngle,
-            settings->parameters
-        )
-    );
-
-    // 参数文件直接给出第二关节初始角度，身体高度根据它同步计算。
+    // 参数文件直接给出身体高度和第二关节初始角度。
     settings->targetLegBendAngle = settings->parameters.initialLegBendAngle;
-    settings->targetHeight = calculateBodyHeightOffset(
-        settings->targetLegBendAngle,
-        settings->parameters
-    );
-    settings->data->qpos[settings->bodyBindings[0].qposAddress]
-        = settings->targetHeight;
+    settings->targetDistalLegAngle
+        = settings->parameters.initialDistalLegAngle;
+    settings->data->qpos[settings->bodyQposAddress + 2]
+        = settings->parameters.initialBodyHeight;
     for (const LegController& leg : settings->legs) {
-        leg.initializePose(settings->data.get(), settings->targetLegBendAngle);
+        leg.initializePose(
+            settings->data.get(),
+            0.0,
+            settings->targetLegBendAngle,
+            settings->targetDistalLegAngle
+        );
     }
     mj_forward(settings->model.get(), settings->data.get());
 
@@ -141,7 +128,7 @@ std::unique_ptr<SimulationSettings> loadAllSettings(
     }
     settings->glfwInitialized = true;
     settings->window = glfwCreateWindow(
-        960, 720, "MuJoCo hexapod - Q up / E down", nullptr, nullptr
+        960, 720, "MuJoCo Hexumi - W/S physical walk", nullptr, nullptr
     );
     if (settings->window == nullptr) {
         throw std::runtime_error("Failed to create the MuJoCo window.");
@@ -155,8 +142,8 @@ std::unique_ptr<SimulationSettings> loadAllSettings(
     mjr_defaultContext(&settings->context);
     settings->camera.lookat[0] = 0.0;
     settings->camera.lookat[1] = 0.0;
-    settings->camera.lookat[2] = 0.20;
-    settings->camera.distance = 1.80;
+    settings->camera.lookat[2] = 0.08;
+    settings->camera.distance = 0.75;
     settings->camera.azimuth = 135.0;
     settings->camera.elevation = -25.0;
 
@@ -169,6 +156,14 @@ std::unique_ptr<SimulationSettings> loadAllSettings(
 }
 
 void renderFrame(SimulationSettings& settings) {
+    // 相机跟随自由身体，机器人移动后仍保持在画面中心。
+    settings.camera.lookat[0]
+        = settings.data->qpos[settings.bodyQposAddress];
+    settings.camera.lookat[1]
+        = settings.data->qpos[settings.bodyQposAddress + 1];
+    settings.camera.lookat[2]
+        = settings.data->qpos[settings.bodyQposAddress + 2];
+
     // 把最新物理状态转换为场景并显示在 GLFW 窗口。
     mjrRect viewport{0, 0, 0, 0};
     glfwGetFramebufferSize(settings.window, &viewport.width, &viewport.height);

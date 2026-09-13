@@ -5,7 +5,7 @@
         {
             "label": "Build spider_sim_cpp",
             "type": "shell",
-            "command": "cmake -S . -B ${env:HOME}/.cache/spider_sim_cpp-build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && cmake --build ${env:HOME}/.cache/spider_sim_cpp-build",
+            "command": "cmake -S . -B ${env:HOME}/.cache/spider_sim_cpp-d-build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && cmake --build ${env:HOME}/.cache/spider_sim_cpp-d-build",
             "options": {
                 "cwd": "${workspaceFolder}"
             },

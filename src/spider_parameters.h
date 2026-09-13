@@ -7,14 +7,20 @@
 // 保存蜘蛛模型运行时需要的初始值、动作限制和控制参数。
 struct SpiderParameters {
     double frameDuration;
-    double baseBodyHeight;
+    double initialBodyHeight;
     double middleLegLength;
     double distalLegLength;
     double initialLegBendAngle;
     double minimumLegBendAngle;
     double maximumLegBendAngle;
+    double initialDistalLegAngle;
+    double minimumDistalLegAngle;
+    double maximumDistalLegAngle;
     double legBendSpeed;
-    PdSettings bodyPd;
+    double gaitCycleDuration;
+    double gaitRootJointLimit;
+    double gaitStrideAngle;
+    double gaitLiftAngle;
     PdSettings legPd;
 };
 

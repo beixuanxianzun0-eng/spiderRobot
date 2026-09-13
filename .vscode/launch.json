@@ -6,7 +6,7 @@
             "name": "Debug MuJoCo closed loop",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${env:HOME}/.cache/spider_sim_cpp-build/spider_sim_cpp",
+            "program": "${env:HOME}/.cache/spider_sim_cpp-d-build/spider_sim_cpp",
             "args": [
                 "${workspaceFolder}/models/closed_loop.xml",
                 "${workspaceFolder}/config/spider_parameters.cfg"

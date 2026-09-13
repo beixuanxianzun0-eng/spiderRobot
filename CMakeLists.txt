@@ -27,6 +27,7 @@ find_package(glfw3 REQUIRED)
 add_executable(
     spider_sim_cpp
     src/main.cpp
+    src/gait_controller.cpp
     src/joint_control.cpp
     src/leg_controller.cpp
     src/load_all_settings.cpp
