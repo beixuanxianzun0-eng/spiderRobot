@@ -1,0 +1,25 @@
+# 每帧时间与腿部几何参数，时间单位为秒，长度单位为米。
+frame_duration=0.0166666667
+initial_body_height=0.120
+middle_leg_length=0.07
+distal_leg_length=0.13
+
+# Hexumi 官方站立零位：足端位于腿坐标 (0.12, 0, -0.109)。
+initial_leg_bend_angle=0.294915656
+minimum_leg_bend_angle=-1.5
+maximum_leg_bend_angle=1.5
+initial_distal_leg_angle=-1.765373443
+minimum_distal_leg_angle=-3.141592654
+maximum_distal_leg_angle=0.0
+leg_bend_speed=0.8
+
+# 交替三角步态参数：周期为秒，其余为弧度。
+gait_cycle_duration=0.5
+gait_root_joint_limit=0.25
+gait_stride_angle=0.0
+gait_lift_angle=0.40
+
+# 六条腿共用的 PD 控制参数。
+leg_pd_proportional_gain=4.0
+leg_pd_derivative_gain=0.7
+leg_pd_maximum_effort=0.8

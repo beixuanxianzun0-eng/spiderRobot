@@ -10,17 +10,28 @@ enum class MovementState {
 enum class MovementDirection {
     Stopped,
     Forward,
-    Backward
+    Backward,
+    Left,
+    Right,
+    ForwardLeft,
+    ForwardRight,
+    BackwardLeft,
+    BackwardRight
 };
 
-// 根据前进和后退输入维护唯一的移动状态。
+// 根据四向键输入维护站立、直向和斜向移动状态。
 class MovementStateMachine {
 public:
     // 默认构造后保持站立状态。
     MovementStateMachine() = default;
 
-    // 同时按下或同时松开 W/S 时回到站立状态。
-    bool update(bool forwardPressed, bool backwardPressed);
+    // 相反方向互相抵消，两个有效方向组合成斜向移动。
+    bool update(
+        bool forwardPressed,
+        bool backwardPressed,
+        bool leftPressed,
+        bool rightPressed
+    );
 
     // 返回当前状态，供后续步态模块读取。
     MovementState state() const;

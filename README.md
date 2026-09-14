@@ -1,37 +1,61 @@
-# MuJoCo C++ starter
+# ROS 2 Hexapod Controller
 
-This project demonstrates a minimal modular hexapod controller in MuJoCo.
+This repository separates platform-independent robot control from the replaceable
+MuJoCo simulation adapter.
 
-## Structure
+## Packages
 
-- `models/closed_loop.xml`: a rectangular body, six mirrored three-joint legs, a ground plane, and eighteen motors.
-- `src/main.cpp`: the input-control-simulation-render core loop.
-- `src/load_all_settings.cpp`: load the model, window, camera, settings, and six leg instances.
-- `src/leg_controller.cpp`: reusable control logic for one three-segment leg.
-- `src/movement_state_machine.cpp`: standing/moving state and forward/backward direction.
-- `src/gait_controller.cpp`: alternating tripod walking animation.
-- `src/joint_control.cpp`: generic PD feedback and motor output.
-- `config/spider_parameters.cfg`: editable pose, limit, PD, and gait parameters.
-- `CMakeLists.txt`: build configuration.
+- `spider_interfaces`: movement-state message shared between nodes.
+- `spider_control`: keyboard input, movement state machine, gait controller, and core C++ library.
+- `spider_mujoco`: replaceable MuJoCo physics and visualization output.
+
+The control packages do not depend on MuJoCo. Removing `ros2/spider_mujoco`
+does not affect the keyboard, state-machine, or gait packages.
+
+## ROS 2 flow
+
+```text
+spider_keyboard_node
+  -> /cmd_vel
+spider_movement_state_node
+  -> /spider/movement_command
+spider_gait_node
+  -> /spider/joint_trajectory
+spider_mujoco_node or a future hardware driver
+```
+
+`/spider/leg_bend_direction` carries the independent Q/E pose command directly
+from the keyboard node to the gait node.
 
 ## Build
 
 ```bash
-cd /mnt/e/RobotProjects/spider_sim_cpp
-cmake -S . -B ~/.cache/spider_sim_cpp-d-build -DCMAKE_BUILD_TYPE=Debug
-cmake --build ~/.cache/spider_sim_cpp-d-build
+cd ~/spider_ws
+source /opt/ros/jazzy/setup.bash
+colcon build --packages-select spider_interfaces spider_control spider_mujoco --symlink-install
+source install/setup.bash
 ```
 
 ## Run
 
+Run every node together:
+
 ```bash
-~/.cache/spider_sim_cpp-d-build/spider_sim_cpp models/closed_loop.xml config/spider_parameters.cfg
+ros2 launch spider_mujoco spider_sim.launch.py
 ```
 
-The visualization window stays open until you close it or stop the VS Code debug session.
-Focus the window, then hold `Q` or `E` to adjust the standing leg angle.
-Hold `W` to walk forward or `S` to walk backward using the tripod gait.
-Releasing both movement keys returns the state machine to standing.
+Focus the small keyboard window. Use `W/A/S/D` to move and `Q/E` to change the
+shared leg bend angle. Closing the keyboard window makes the state node return
+to standing after its command timeout.
 
-Gravity, collision, foot friction, and a freely moving body are enabled, so the
-walking gait produces physical translation instead of directly changing body coordinates.
+VS Code provides `Debug ROS2 spider closed loop` for one-click build and
+multi-process debugging. Each node also has its own debug configuration.
+
+## Hardware replacement
+
+A real hardware package should subscribe to `/spider/joint_trajectory`, validate
+the eighteen joint names, convert radians to the motor protocol, enforce limits,
+and publish encoder feedback. The state machine and gait packages stay unchanged.
+
+MuJoCo is both a physics simulator and visualization layer; it is not part of
+the platform-independent control chain.

@@ -2,15 +2,35 @@
 
 bool MovementStateMachine::update(
     bool forwardPressed,
-    bool backwardPressed
+    bool backwardPressed,
+    bool leftPressed,
+    bool rightPressed
 ) {
-    MovementState nextState = MovementState::Standing;
+    const int forwardAxis
+        = static_cast<int>(forwardPressed) - static_cast<int>(backwardPressed);
+    const int leftAxis
+        = static_cast<int>(leftPressed) - static_cast<int>(rightPressed);
+
+    MovementState nextState = MovementState::Moving;
     MovementDirection nextDirection = MovementDirection::Stopped;
-    if (forwardPressed != backwardPressed) {
-        nextState = MovementState::Moving;
-        nextDirection = forwardPressed
-            ? MovementDirection::Forward
-            : MovementDirection::Backward;
+    if (forwardAxis > 0 && leftAxis > 0) {
+        nextDirection = MovementDirection::ForwardLeft;
+    } else if (forwardAxis > 0 && leftAxis < 0) {
+        nextDirection = MovementDirection::ForwardRight;
+    } else if (forwardAxis < 0 && leftAxis > 0) {
+        nextDirection = MovementDirection::BackwardLeft;
+    } else if (forwardAxis < 0 && leftAxis < 0) {
+        nextDirection = MovementDirection::BackwardRight;
+    } else if (forwardAxis > 0) {
+        nextDirection = MovementDirection::Forward;
+    } else if (forwardAxis < 0) {
+        nextDirection = MovementDirection::Backward;
+    } else if (leftAxis > 0) {
+        nextDirection = MovementDirection::Left;
+    } else if (leftAxis < 0) {
+        nextDirection = MovementDirection::Right;
+    } else {
+        nextState = MovementState::Standing;
     }
 
     // 返回状态是否发生变化，避免每帧重复打印相同内容。
@@ -46,6 +66,18 @@ const char* movementDirectionName(MovementDirection direction) {
             return "Forward";
         case MovementDirection::Backward:
             return "Backward";
+        case MovementDirection::Left:
+            return "Left";
+        case MovementDirection::Right:
+            return "Right";
+        case MovementDirection::ForwardLeft:
+            return "ForwardLeft";
+        case MovementDirection::ForwardRight:
+            return "ForwardRight";
+        case MovementDirection::BackwardLeft:
+            return "BackwardLeft";
+        case MovementDirection::BackwardRight:
+            return "BackwardRight";
     }
     return "Unknown";
 }

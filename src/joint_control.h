@@ -5,18 +5,13 @@
 #include <string>
 #include <vector>
 
+#include "pd_settings.h"
+
 // 保存一个关节及其电机在 MuJoCo 数组中的位置。
 struct JointBinding {
     int qposAddress;
     int dofAddress;
     int actuatorId;
-};
-
-// 保存一组可复用的 PD 控制参数。
-struct PdSettings {
-    double proportionalGain;
-    double derivativeGain;
-    double maximumEffort;
 };
 
 // 根据 XML 名称解析关节和电机，避免 main.cpp 依赖固定数组编号。

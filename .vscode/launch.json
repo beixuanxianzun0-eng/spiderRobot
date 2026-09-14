@@ -1,22 +1,115 @@
 {
-    // Run the MuJoCo program with GDB inside Ubuntu WSL.
+    // 四个独立进程可单独打断点，也可通过 compound 一键同时调试。
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug MuJoCo closed loop",
+            "name": "ROS2 Keyboard Input",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${env:HOME}/.cache/spider_sim_cpp-d-build/spider_sim_cpp",
-            "args": [
-                "${workspaceFolder}/models/closed_loop.xml",
-                "${workspaceFolder}/config/spider_parameters.cfg"
-            ],
-            "stopAtEntry": false,
+            "program": "${env:HOME}/spider_ws/install/spider_control/lib/spider_control/spider_keyboard_node",
             "cwd": "${workspaceFolder}",
-            "externalConsole": false,
             "MIMode": "gdb",
             "miDebuggerPath": "/usr/bin/gdb",
-            "preLaunchTask": "Build spider_sim_cpp"
+            "environment": [
+                {
+                    "name": "AMENT_PREFIX_PATH",
+                    "value": "${env:HOME}/spider_ws/install/spider_mujoco:${env:HOME}/spider_ws/install/spider_control:${env:HOME}/spider_ws/install/spider_interfaces:/opt/ros/jazzy"
+                },
+                {
+                    "name": "LD_LIBRARY_PATH",
+                    "value": "${env:HOME}/spider_ws/install/spider_mujoco/lib:${env:HOME}/spider_ws/install/spider_control/lib:${env:HOME}/spider_ws/install/spider_interfaces/lib:/opt/ros/jazzy/lib:/opt/ros/jazzy/lib/x86_64-linux-gnu:${env:HOME}/.local/mujoco/current/lib"
+                }
+            ]
+        },
+        {
+            "name": "ROS2 Movement State",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${env:HOME}/spider_ws/install/spider_control/lib/spider_control/spider_movement_state_node",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "environment": [
+                {
+                    "name": "AMENT_PREFIX_PATH",
+                    "value": "${env:HOME}/spider_ws/install/spider_mujoco:${env:HOME}/spider_ws/install/spider_control:${env:HOME}/spider_ws/install/spider_interfaces:/opt/ros/jazzy"
+                },
+                {
+                    "name": "LD_LIBRARY_PATH",
+                    "value": "${env:HOME}/spider_ws/install/spider_mujoco/lib:${env:HOME}/spider_ws/install/spider_control/lib:${env:HOME}/spider_ws/install/spider_interfaces/lib:/opt/ros/jazzy/lib:/opt/ros/jazzy/lib/x86_64-linux-gnu:${env:HOME}/.local/mujoco/current/lib"
+                }
+            ]
+        },
+        {
+            "name": "ROS2 Gait Controller",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${env:HOME}/spider_ws/install/spider_control/lib/spider_control/spider_gait_node",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "environment": [
+                {
+                    "name": "AMENT_PREFIX_PATH",
+                    "value": "${env:HOME}/spider_ws/install/spider_mujoco:${env:HOME}/spider_ws/install/spider_control:${env:HOME}/spider_ws/install/spider_interfaces:/opt/ros/jazzy"
+                },
+                {
+                    "name": "LD_LIBRARY_PATH",
+                    "value": "${env:HOME}/spider_ws/install/spider_mujoco/lib:${env:HOME}/spider_ws/install/spider_control/lib:${env:HOME}/spider_ws/install/spider_interfaces/lib:/opt/ros/jazzy/lib:/opt/ros/jazzy/lib/x86_64-linux-gnu:${env:HOME}/.local/mujoco/current/lib"
+                }
+            ]
+        },
+        {
+            "name": "ROS2 Runtime Tuning",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${env:HOME}/spider_ws/install/spider_control/lib/spider_control/spider_tuning_node",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "environment": [
+                {
+                    "name": "AMENT_PREFIX_PATH",
+                    "value": "${env:HOME}/spider_ws/install/spider_mujoco:${env:HOME}/spider_ws/install/spider_control:${env:HOME}/spider_ws/install/spider_interfaces:/opt/ros/jazzy"
+                },
+                {
+                    "name": "LD_LIBRARY_PATH",
+                    "value": "${env:HOME}/spider_ws/install/spider_mujoco/lib:${env:HOME}/spider_ws/install/spider_control/lib:${env:HOME}/spider_ws/install/spider_interfaces/lib:/opt/ros/jazzy/lib:/opt/ros/jazzy/lib/x86_64-linux-gnu:${env:HOME}/.local/mujoco/current/lib"
+                }
+            ]
+        },
+        {
+            "name": "ROS2 MuJoCo Output",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${env:HOME}/spider_ws/install/spider_mujoco/lib/spider_mujoco/spider_mujoco_node",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "environment": [
+                {
+                    "name": "AMENT_PREFIX_PATH",
+                    "value": "${env:HOME}/spider_ws/install/spider_mujoco:${env:HOME}/spider_ws/install/spider_control:${env:HOME}/spider_ws/install/spider_interfaces:/opt/ros/jazzy"
+                },
+                {
+                    "name": "LD_LIBRARY_PATH",
+                    "value": "${env:HOME}/spider_ws/install/spider_mujoco/lib:${env:HOME}/spider_ws/install/spider_control/lib:${env:HOME}/spider_ws/install/spider_interfaces/lib:/opt/ros/jazzy/lib:/opt/ros/jazzy/lib/x86_64-linux-gnu:${env:HOME}/.local/mujoco/current/lib"
+                }
+            ]
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Debug ROS2 spider closed loop",
+            "configurations": [
+                "ROS2 Keyboard Input",
+                "ROS2 Movement State",
+                "ROS2 Gait Controller",
+                "ROS2 Runtime Tuning",
+                "ROS2 MuJoCo Output"
+            ],
+            "preLaunchTask": "Build ROS2 spider packages",
+            "stopAll": true
         }
     ]
 }

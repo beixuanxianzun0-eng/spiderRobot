@@ -26,6 +26,15 @@ struct SimulationSettings {
     bool glfwInitialized{false};
     bool sceneInitialized{false};
     bool contextInitialized{false};
+    bool mouseLeftPressed{false};
+    bool mouseMiddlePressed{false};
+    bool mouseRightPressed{false};
+    bool cameraFollowInitialized{false};
+    double lastCursorX{0.0};
+    double lastCursorY{0.0};
+    double lastBodyX{0.0};
+    double lastBodyY{0.0};
+    double lastBodyZ{0.0};
 
     std::vector<LegController> legs;
     int bodyQposAddress{-1};
@@ -44,6 +53,13 @@ struct SimulationSettings {
 std::unique_ptr<SimulationSettings> loadAllSettings(
     const char* modelPath,
     const char* parameterPath
+);
+
+// 把质量和关节限制写入已经加载的 MuJoCo 模型，可用于启动和实时调参。
+void applyModelPhysicalParameters(
+    mjModel* model,
+    mjData* data,
+    const SpiderParameters& parameters
 );
 
 // 使用当前物理状态绘制一帧，并处理窗口事件。
