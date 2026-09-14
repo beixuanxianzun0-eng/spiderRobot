@@ -1,6 +1,7 @@
 #include "spider_parameters.h"
 
 #include <fstream>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -76,6 +77,10 @@ SpiderParameters loadSpiderParameters(const std::string& filePath) {
         requireDouble(values, "initial_body_height"),
         requireDouble(values, "middle_leg_length"),
         requireDouble(values, "distal_leg_length"),
+        requireDouble(values, "spider_body_mass"),
+        requireDouble(values, "leg_root_mass"),
+        requireDouble(values, "leg_middle_mass"),
+        requireDouble(values, "leg_distal_mass"),
         requireDouble(values, "initial_leg_bend_angle"),
         requireDouble(values, "minimum_leg_bend_angle"),
         requireDouble(values, "maximum_leg_bend_angle"),
@@ -114,17 +119,36 @@ SpiderParameters loadSpiderParameters(const std::string& filePath) {
     if (parameters.legBendSpeed <= 0.0
         || parameters.frameDuration <= 0.0
         || parameters.middleLegLength <= 0.0
-        || parameters.distalLegLength < 0.0) {
-        throw std::runtime_error("Spider speed, timing, and lengths must be valid.");
+        || parameters.distalLegLength < 0.0
+        || parameters.spiderBodyMass <= 0.0
+        || parameters.legRootMass <= 0.0
+        || parameters.legMiddleMass <= 0.0
+        || parameters.legDistalMass <= 0.0) {
+        throw std::runtime_error(
+            "Spider speed, timing, lengths, and masses must be valid."
+        );
     }
     if (parameters.gaitCycleDuration <= 0.0
         || parameters.gaitRootJointLimit <= 0.0
         || parameters.gaitStrideAngle < 0.0
-        || parameters.gaitStrideAngle > parameters.gaitRootJointLimit
-        || parameters.gaitLiftAngle < 0.0
-        || parameters.initialLegBendAngle - parameters.gaitLiftAngle
-            < parameters.minimumLegBendAngle) {
-        throw std::runtime_error("Gait parameters exceed the configured joint limits.");
+        || parameters.gaitLiftAngle < 0.0) {
+        throw std::runtime_error("Gait timing and angles must be positive.");
+    }
+
+    // 超出关节范围时使用最大安全值，避免调参错误导致节点退出。
+    if (parameters.gaitStrideAngle > parameters.gaitRootJointLimit) {
+        std::cerr
+            << "Warning: gait_stride_angle was clamped to "
+            << parameters.gaitRootJointLimit << ".\n";
+        parameters.gaitStrideAngle = parameters.gaitRootJointLimit;
+    }
+    const double maximumLiftAngle
+        = parameters.initialLegBendAngle - parameters.minimumLegBendAngle;
+    if (parameters.gaitLiftAngle > maximumLiftAngle) {
+        std::cerr
+            << "Warning: gait_lift_angle was clamped to "
+            << maximumLiftAngle << ".\n";
+        parameters.gaitLiftAngle = maximumLiftAngle;
     }
 
     return parameters;

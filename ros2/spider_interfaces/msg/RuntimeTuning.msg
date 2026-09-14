@@ -1,0 +1,12 @@
+float64 gait_cycle_duration
+float64 gait_root_joint_limit
+float64 gait_stride_angle
+float64 gait_lift_angle
+float64 leg_bend_speed
+float64 spider_body_mass
+float64 leg_root_mass
+float64 leg_middle_mass
+float64 leg_distal_mass
+float64 leg_pd_proportional_gain
+float64 leg_pd_derivative_gain
+float64 leg_pd_maximum_effort

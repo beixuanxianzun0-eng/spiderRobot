@@ -20,6 +20,13 @@ public:
         double liftAngle
     );
 
+    // 运行中更新步态参数，不重置当前步态相位。
+    void configure(
+        double cycleDuration,
+        double strideAngle,
+        double liftAngle
+    );
+
     // 根据状态、方向和时间推进动画，并返回六条腿的目标姿态。
     std::array<LegPose, 6> update(
         MovementState state,
